@@ -1,0 +1,42 @@
+name: local-reverse-proxy
+services:
+  controller:
+    image: ghcr.io/shayan/local-reverse-proxy:${LRP_VERSION:-latest}
+    environment:
+      LRP_CADDY_ADMIN_URL: http://caddy:2019
+      LRP_DATA_DIR: /data
+      LRP_LISTEN: 0.0.0.0:7400
+      LRP_WEB_DIR: /app/web
+      LRP_ADMIN_TOKEN: ${LRP_ADMIN_TOKEN}
+    ports: ["127.0.0.1:${LRP_DASHBOARD_PORT:-7400}:7400"]
+    volumes: ["controller-data:/data"]
+    networks: [lrp]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    depends_on: [caddy]
+  caddy:
+    image: caddy:2.10.2-alpine
+    command: ["caddy", "run", "--config", "/etc/caddy/bootstrap.json"]
+    ports: ["127.0.0.1:80:80", "127.0.0.1:443:443"]
+    volumes:
+      - ./caddy-bootstrap.json:/etc/caddy/bootstrap.json:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [lrp]
+    security_opt: [no-new-privileges:true]
+  dns:
+    image: coredns/coredns:1.12.4
+    environment: ["LRP_ZONE=${LRP_ZONE}"]
+    command: ["-conf", "/etc/coredns/Corefile"]
+    ports: ["127.0.0.1:53:53/tcp", "127.0.0.1:53:53/udp"]
+    volumes: ["./Corefile:/etc/coredns/Corefile:ro"]
+    networks: [lrp]
+    read_only: true
+    security_opt: [no-new-privileges:true]
+networks:
+  lrp:
+volumes:
+  controller-data:
+  caddy-data:
+  caddy-config:

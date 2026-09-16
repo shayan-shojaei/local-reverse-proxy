@@ -34,7 +34,10 @@ func Render(zone string, routes []domain.Route) (map[string]any, error) {
 	servers := map[string]any{
 		"http": map[string]any{"listen": []string{"0.0.0.0:80"}, "routes": httpRoutes},
 	}
-	apps := map[string]any{"http": map[string]any{"servers": servers}}
+	apps := map[string]any{
+		"http": map[string]any{"servers": servers},
+		"pki":  map[string]any{"certificate_authorities": map[string]any{"local": map[string]any{"name": "LRP Local Authority"}}},
+	}
 	if len(httpsRoutes) > 0 {
 		servers["https"] = map[string]any{
 			"listen": []string{"0.0.0.0:443"}, "routes": httpsRoutes,
