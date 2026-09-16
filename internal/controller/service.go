@@ -15,9 +15,11 @@ type Applier interface {
 }
 
 type Service struct {
-	store   *store.Store
-	applier Applier
-	mu      sync.Mutex
+	store    *store.Store
+	applier  Applier
+	mu       sync.Mutex
+	healthMu sync.RWMutex
+	health   map[string]domain.HealthStatus
 }
 
 type UpdateRouteInput struct {
@@ -27,11 +29,22 @@ type UpdateRouteInput struct {
 }
 
 func NewService(store *store.Store, applier Applier) *Service {
-	return &Service{store: store, applier: applier}
+	return &Service{store: store, applier: applier, health: make(map[string]domain.HealthStatus)}
 }
 
 func (s *Service) ListRoutes(ctx context.Context) ([]domain.Route, error) {
-	return s.store.ListRoutes(ctx)
+	routes, err := s.store.ListRoutes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s.healthMu.RLock()
+	defer s.healthMu.RUnlock()
+	for index := range routes {
+		if health, ok := s.health[routes[index].ID]; ok {
+			routes[index].Health = health
+		}
+	}
+	return routes, nil
 }
 
 func (s *Service) Settings(ctx context.Context) (store.Settings, error) {
@@ -135,6 +148,9 @@ func (s *Service) DeleteRoute(ctx context.Context, id string, revision int64) er
 		_ = s.apply(ctx, current)
 		return err
 	}
+	s.healthMu.Lock()
+	delete(s.health, id)
+	s.healthMu.Unlock()
 	return nil
 }
 

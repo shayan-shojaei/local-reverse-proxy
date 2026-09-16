@@ -16,6 +16,8 @@ services:
     volumes:
       - controller-data:/data
     networks: [lrp]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]

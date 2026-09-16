@@ -34,8 +34,11 @@ func run() error {
 		return err
 	}
 	defer db.Close()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	service := controller.NewService(db, caddy.NewClient(env("LRP_CADDY_ADMIN_URL", "http://127.0.0.1:2019")))
+	service.StartHealthChecks(ctx, 15*time.Second)
 	if err := service.Reconcile(context.Background()); err != nil {
 		slog.Warn("initial Caddy reconciliation failed; dashboard remains available", "error", err)
 	}
@@ -56,8 +59,6 @@ func run() error {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
