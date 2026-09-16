@@ -15,11 +15,13 @@ type Applier interface {
 }
 
 type Service struct {
-	store    *store.Store
-	applier  Applier
-	mu       sync.Mutex
-	healthMu sync.RWMutex
-	health   map[string]domain.HealthStatus
+	store          *store.Store
+	applier        Applier
+	mu             sync.Mutex
+	healthMu       sync.RWMutex
+	health         map[string]domain.HealthStatus
+	pendingMu      sync.Mutex
+	pendingImports map[string]pendingImport
 }
 
 type UpdateRouteInput struct {
@@ -29,7 +31,7 @@ type UpdateRouteInput struct {
 }
 
 func NewService(store *store.Store, applier Applier) *Service {
-	return &Service{store: store, applier: applier, health: make(map[string]domain.HealthStatus)}
+	return &Service{store: store, applier: applier, health: make(map[string]domain.HealthStatus), pendingImports: make(map[string]pendingImport)}
 }
 
 func (s *Service) ListRoutes(ctx context.Context) ([]domain.Route, error) {

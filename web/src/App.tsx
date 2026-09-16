@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { api } from './api'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { api, type PortableConfig } from './api'
 import { RouteForm } from './components/RouteForm'
 import { RouteTable } from './components/RouteTable'
 import type { Route, RouteDraft, SystemStatus } from './types'
@@ -14,6 +14,7 @@ export default function App() {
   const [formOpen, setFormOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState('')
+  const importInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -61,6 +62,22 @@ export default function App() {
     try { await api.updateRoute(route, draft, !route.enabled); await load() }
     catch (error) { setPageError(error instanceof Error ? error.message : 'Could not update route') }
   }
+  const exportRoutes = async () => {
+    try {
+      const config = await api.exportConfig()
+      const url = URL.createObjectURL(new Blob([`${JSON.stringify(config, null, 2)}\n`], { type: 'application/json' }))
+      const link = document.createElement('a'); link.href = url; link.download = `lrp-${config.zone}.json`; link.click(); URL.revokeObjectURL(url)
+    } catch (error) { setPageError(error instanceof Error ? error.message : 'Could not export routes') }
+  }
+  const importRoutes = async (file: File) => {
+    try {
+      const config = JSON.parse(await file.text()) as PortableConfig
+      const preview = await api.previewImport(config, 'merge')
+      if (!window.confirm(`Import into ${preview.targetZone}? Add ${preview.added}, update ${preview.updated}, delete ${preview.deleted}.`)) return
+      await api.applyImport(preview.digest); await load()
+    } catch (error) { setPageError(error instanceof Error ? error.message : 'Could not import routes') }
+    finally { if (importInput.current) importInput.current.value = '' }
+  }
 
   const zone = status?.zone ?? 'local.test'
   return (
@@ -70,7 +87,7 @@ export default function App() {
         <section className="page-heading"><div><p className="eyebrow">Domain routing</p><h1>Your local apps, properly addressed.</h1><p>Give every development server a memorable <code>.test</code> URL with trusted HTTPS.</p></div><button className="button button--primary button--large" onClick={openCreate}>＋ Add route</button></section>
         <section className="system-strip" aria-label="System status"><div><span className={`health-dot ${status ? '' : 'health-dot--muted'}`} /><span><strong>{status ? 'Proxy services online' : 'Checking services…'}</strong><small>{zone} · loopback only</small></span></div><button className="button button--quiet" onClick={() => void load()}>Run checks</button></section>
         {pageError && <div className="page-error" role="alert"><span>{pageError}</span><button onClick={() => void load()}>Retry</button></div>}
-        <section className="routes-section" aria-labelledby="routes-heading"><div className="section-toolbar"><div><h2 id="routes-heading">Routes</h2><span>{routes.length} configured</span></div><label className="search"><span className="sr-only">Search routes</span><input type="search" placeholder="Search domains or targets" value={query} onChange={(e) => setQuery(e.target.value)} /></label></div>
+        <section className="routes-section" aria-labelledby="routes-heading"><div className="section-toolbar"><div><h2 id="routes-heading">Routes</h2><span>{routes.length} configured</span></div><div className="toolbar-actions"><button className="button button--quiet" onClick={() => void exportRoutes()}>Export</button><button className="button button--quiet" onClick={() => importInput.current?.click()}>Import</button><input ref={importInput} className="sr-only" type="file" accept="application/json,.json" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importRoutes(file) }} /><label className="search"><span className="sr-only">Search routes</span><input type="search" placeholder="Search domains or targets" value={query} onChange={(e) => setQuery(e.target.value)} /></label></div></div>
           {loading ? <div className="loading" aria-busy="true">Loading routes…</div> : <RouteTable routes={visible} zone={zone} onEdit={openEdit} onDelete={(route) => void remove(route)} onToggle={(route) => void toggle(route)} />}
         </section>
       </main>

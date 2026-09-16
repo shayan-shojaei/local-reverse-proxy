@@ -72,16 +72,45 @@ func migrate(ctx context.Context, db *sql.DB) error {
 func (s *Store) Close() error { return s.db.Close() }
 
 func (s *Store) CreateRoute(ctx context.Context, route domain.Route) error {
-	_, err := s.db.ExecContext(ctx, `INSERT INTO routes
-		(id, hostname, enabled, public_mode, upstream_scheme, upstream_host, upstream_port, skip_tls_verify, revision, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		route.ID, route.Hostname, route.Enabled, route.PublicMode, route.Upstream.Scheme, route.Upstream.Host,
-		route.Upstream.Port, route.Upstream.SkipTLSVerify, route.Revision, formatTime(route.CreatedAt), formatTime(route.UpdatedAt))
+	err := insertRoute(ctx, s.db, route)
 	if err != nil && strings.Contains(strings.ToLower(err.Error()), "unique") {
 		return ErrHostnameConflict
 	}
 	if err != nil {
 		return fmt.Errorf("create route: %w", err)
+	}
+	return nil
+}
+
+type executor interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+}
+
+func insertRoute(ctx context.Context, target executor, route domain.Route) error {
+	_, err := target.ExecContext(ctx, `INSERT INTO routes
+		(id, hostname, enabled, public_mode, upstream_scheme, upstream_host, upstream_port, skip_tls_verify, revision, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		route.ID, route.Hostname, route.Enabled, route.PublicMode, route.Upstream.Scheme, route.Upstream.Host,
+		route.Upstream.Port, route.Upstream.SkipTLSVerify, route.Revision, formatTime(route.CreatedAt), formatTime(route.UpdatedAt))
+	return err
+}
+
+func (s *Store) ReplaceRoutes(ctx context.Context, routes []domain.Route) error {
+	transaction, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin route replacement: %w", err)
+	}
+	defer transaction.Rollback()
+	if _, err := transaction.ExecContext(ctx, `DELETE FROM routes`); err != nil {
+		return fmt.Errorf("clear routes: %w", err)
+	}
+	for _, route := range routes {
+		if err := insertRoute(ctx, transaction, route); err != nil {
+			return fmt.Errorf("insert replacement route %q: %w", route.Hostname, err)
+		}
+	}
+	if err := transaction.Commit(); err != nil {
+		return fmt.Errorf("commit route replacement: %w", err)
 	}
 	return nil
 }

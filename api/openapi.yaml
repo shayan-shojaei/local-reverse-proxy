@@ -86,6 +86,23 @@ paths:
       summary: Read controller status and configured zone
       responses:
         '200': { description: Controller status }
+  /config/export:
+    get:
+      summary: Export a portable, secret-free route configuration
+      responses:
+        '200': { description: Versioned route configuration }
+  /config/import/preview:
+    post:
+      summary: Validate an import and preview its atomic diff
+      responses:
+        '200': { description: Added, updated, and deleted counts plus a short-lived digest }
+        '400': { $ref: '#/components/responses/Problem' }
+  /config/import/apply:
+    post:
+      summary: Apply the exact previously previewed import
+      responses:
+        '204': { description: Import applied }
+        '400': { $ref: '#/components/responses/Problem' }
 components:
   securitySchemes:
     bearerToken:

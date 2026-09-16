@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -60,6 +63,24 @@ func run(args []string) error {
 			return err
 		}
 		return app.Uninstall(ctx, *purge, printStep)
+	case "export":
+		flags := flag.NewFlagSet("export", flag.ContinueOnError)
+		output := flags.String("output", "lrp-config.json", "destination JSON file")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		return exportConfig(ctx, app, *output)
+	case "import":
+		flags := flag.NewFlagSet("import", flag.ContinueOnError)
+		mode := flags.String("mode", "merge", "merge or replace")
+		yes := flags.Bool("yes", false, "apply after printing the preview")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		if flags.NArg() != 1 {
+			return errors.New("usage: lrp import [--mode merge|replace] [--yes] FILE")
+		}
+		return importConfig(ctx, app, flags.Arg(0), *mode, *yes)
 	case "help", "--help", "-h":
 		usage()
 		return nil
@@ -67,6 +88,87 @@ func run(args []string) error {
 		usage()
 		return fmt.Errorf("unknown command %q", args[0])
 	}
+}
+
+func exportConfig(ctx context.Context, app *installer.Installer, destination string) error {
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := controllerRequest(ctx, app, http.MethodGet, "/api/v1/config/export", nil, &envelope); err != nil {
+		return err
+	}
+	var formatted bytes.Buffer
+	if err := json.Indent(&formatted, envelope.Data, "", "  "); err != nil {
+		return err
+	}
+	formatted.WriteByte('\n')
+	if err := os.WriteFile(destination, formatted.Bytes(), 0o600); err != nil {
+		return err
+	}
+	fmt.Println("exported configuration to", destination)
+	return nil
+}
+
+func importConfig(ctx context.Context, app *installer.Installer, path, mode string, apply bool) error {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	if len(contents) > 1<<20 {
+		return errors.New("import file exceeds 1 MiB")
+	}
+	var config json.RawMessage
+	if err := json.Unmarshal(contents, &config); err != nil {
+		return fmt.Errorf("invalid import JSON: %w", err)
+	}
+	body, _ := json.Marshal(map[string]any{"mode": mode, "config": config})
+	var envelope struct {
+		Data struct {
+			Digest     string `json:"digest"`
+			TargetZone string `json:"targetZone"`
+			Added      int    `json:"added"`
+			Updated    int    `json:"updated"`
+			Deleted    int    `json:"deleted"`
+		} `json:"data"`
+	}
+	if err := controllerRequest(ctx, app, http.MethodPost, "/api/v1/config/import/preview", body, &envelope); err != nil {
+		return err
+	}
+	fmt.Printf("target zone: %s\nadd: %d  update: %d  delete: %d\n", envelope.Data.TargetZone, envelope.Data.Added, envelope.Data.Updated, envelope.Data.Deleted)
+	if !apply {
+		fmt.Println("preview only; rerun with --yes to apply this import")
+		return nil
+	}
+	applyBody, _ := json.Marshal(map[string]string{"digest": envelope.Data.Digest})
+	return controllerRequest(ctx, app, http.MethodPost, "/api/v1/config/import/apply", applyBody, nil)
+}
+
+func controllerRequest(ctx context.Context, app *installer.Installer, method, path string, body []byte, output any) error {
+	values, err := app.Env()
+	if err != nil {
+		return errors.New("not installed; run `lrp install` first")
+	}
+	request, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("http://127.0.0.1:%s%s", values["LRP_DASHBOARD_PORT"], path), bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+values["LRP_ADMIN_TOKEN"])
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	response, err := (&http.Client{Timeout: 15 * time.Second}).Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		message, _ := io.ReadAll(io.LimitReader(response.Body, 16<<10))
+		return fmt.Errorf("controller returned %s: %s", response.Status, string(message))
+	}
+	if output != nil {
+		return json.NewDecoder(response.Body).Decode(output)
+	}
+	return nil
 }
 
 func openDashboard(app *installer.Installer) error {
@@ -122,6 +224,8 @@ Usage:
   lrp install [--zone local.test] [--dashboard-port 7400] [--version latest] [--dry-run]
   lrp dashboard
   lrp doctor
+  lrp export [--output lrp-config.json]
+  lrp import [--mode merge|replace] [--yes] FILE
   lrp upgrade [--version VERSION]
   lrp uninstall [--purge]`)
 }

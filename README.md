@@ -58,6 +58,9 @@ Useful lifecycle commands:
 
 ```sh
 lrp doctor
+lrp export --output routes.json
+lrp import --mode merge routes.json       # preview only
+lrp import --mode merge --yes routes.json # apply reviewed diff
 lrp upgrade --version v0.2.0
 lrp uninstall          # keeps Docker volumes
 lrp uninstall --purge  # also deletes route and CA data

@@ -94,3 +94,24 @@ func TestSettingsDefaultAndUpdateZone(t *testing.T) {
 		t.Fatalf("zone = %q, want dev.test", settings.Zone)
 	}
 }
+
+func TestReplaceRoutesAtomicallyReplacesCollection(t *testing.T) {
+	ctx := context.Background()
+	db, err := Open(ctx, t.TempDir()+"/lrp.db")
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+	oldRoute, _ := domain.NewRoute(domain.RouteInput{Hostname: "old", PublicMode: domain.PublicHTTP, Upstream: domain.Upstream{Scheme: "http", Host: "localhost", Port: 3000}})
+	newRoute, _ := domain.NewRoute(domain.RouteInput{Hostname: "new", PublicMode: domain.PublicHTTPS, Upstream: domain.Upstream{Scheme: "http", Host: "localhost", Port: 4000}})
+	if err := db.CreateRoute(ctx, oldRoute); err != nil {
+		t.Fatalf("CreateRoute: %v", err)
+	}
+	if err := db.ReplaceRoutes(ctx, []domain.Route{newRoute}); err != nil {
+		t.Fatalf("ReplaceRoutes: %v", err)
+	}
+	routes, err := db.ListRoutes(ctx)
+	if err != nil || len(routes) != 1 || routes[0].Hostname != "new" {
+		t.Fatalf("routes = %#v, error = %v", routes, err)
+	}
+}

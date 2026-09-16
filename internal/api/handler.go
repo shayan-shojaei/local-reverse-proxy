@@ -33,11 +33,55 @@ func NewHandler(service *controller.Service, authOptions ...*Auth) http.Handler 
 	mux.HandleFunc("PATCH /api/v1/routes/{id}", handler.updateRoute)
 	mux.HandleFunc("DELETE /api/v1/routes/{id}", handler.deleteRoute)
 	mux.HandleFunc("GET /api/v1/status", handler.status)
+	mux.HandleFunc("GET /api/v1/config/export", handler.exportConfig)
+	mux.HandleFunc("POST /api/v1/config/import/preview", handler.previewImport)
+	mux.HandleFunc("POST /api/v1/config/import/apply", handler.applyImport)
 	var root http.Handler = mux
 	if len(authOptions) > 0 && authOptions[0] != nil {
 		root = authOptions[0].Wrap(root)
 	}
 	return securityHeaders(loopbackOnly(root))
+}
+
+func (h *Handler) exportConfig(writer http.ResponseWriter, request *http.Request) {
+	config, err := h.service.ExportConfig(request.Context())
+	if err != nil {
+		writeError(writer, err)
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]any{"data": config})
+}
+
+func (h *Handler) previewImport(writer http.ResponseWriter, request *http.Request) {
+	var input struct {
+		Mode   controller.ImportMode     `json:"mode"`
+		Config controller.PortableConfig `json:"config"`
+	}
+	if err := decodeJSON(writer, request, &input); err != nil {
+		writeProblem(writer, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	preview, err := h.service.PreviewImport(request.Context(), input.Config, input.Mode)
+	if err != nil {
+		writeError(writer, err)
+		return
+	}
+	writeJSON(writer, http.StatusOK, map[string]any{"data": preview})
+}
+
+func (h *Handler) applyImport(writer http.ResponseWriter, request *http.Request) {
+	var input struct {
+		Digest string `json:"digest"`
+	}
+	if err := decodeJSON(writer, request, &input); err != nil {
+		writeProblem(writer, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	if err := h.service.ApplyImport(request.Context(), input.Digest); err != nil {
+		writeError(writer, err)
+		return
+	}
+	writer.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) listRoutes(writer http.ResponseWriter, request *http.Request) {
