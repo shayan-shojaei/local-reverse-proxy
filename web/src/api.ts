@@ -18,6 +18,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  exchangeToken: async (token: string) => {
+    const response = await fetch('/api/v1/auth/exchange', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }),
+    })
+    if (!response.ok) throw new Error('This dashboard login link is invalid or expired.')
+  },
   listRoutes: () => request<Route[]>('/routes'),
   status: () => request<SystemStatus>('/status'),
   createRoute: (draft: RouteDraft) => request<Route>('/routes', {

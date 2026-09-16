@@ -25,7 +25,7 @@ type problem struct {
 	Detail string `json:"detail"`
 }
 
-func NewHandler(service *controller.Service) http.Handler {
+func NewHandler(service *controller.Service, authOptions ...*Auth) http.Handler {
 	handler := &Handler{service: service}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/routes", handler.listRoutes)
@@ -33,7 +33,11 @@ func NewHandler(service *controller.Service) http.Handler {
 	mux.HandleFunc("PATCH /api/v1/routes/{id}", handler.updateRoute)
 	mux.HandleFunc("DELETE /api/v1/routes/{id}", handler.deleteRoute)
 	mux.HandleFunc("GET /api/v1/status", handler.status)
-	return securityHeaders(loopbackOnly(mux))
+	var root http.Handler = mux
+	if len(authOptions) > 0 && authOptions[0] != nil {
+		root = authOptions[0].Wrap(root)
+	}
+	return securityHeaders(loopbackOnly(root))
 }
 
 func (h *Handler) listRoutes(writer http.ResponseWriter, request *http.Request) {

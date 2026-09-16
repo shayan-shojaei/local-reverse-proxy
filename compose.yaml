@@ -10,6 +10,7 @@ services:
       LRP_DATA_DIR: /data
       LRP_LISTEN: 0.0.0.0:7400
       LRP_WEB_DIR: /app/web
+      LRP_ADMIN_TOKEN: ${LRP_ADMIN_TOKEN:-}
     ports:
       - "127.0.0.1:${LRP_DASHBOARD_PORT:-7400}:7400"
     volumes:

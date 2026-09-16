@@ -22,7 +22,22 @@ export default function App() {
     } catch (error) { setPageError(error instanceof Error ? error.message : 'Could not load the dashboard') }
     finally { setLoading(false) }
   }, [])
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    const initialize = async () => {
+      const token = new URLSearchParams(window.location.hash.slice(1)).get('token')
+      try {
+        if (token) {
+          window.history.replaceState(null, '', window.location.pathname)
+          await api.exchangeToken(token)
+        }
+        await load()
+      } catch (error) {
+        setPageError(error instanceof Error ? error.message : 'Could not sign in')
+        setLoading(false)
+      }
+    }
+    void initialize()
+  }, [load])
 
   const visible = useMemo(() => routes.filter((route) => `${route.hostname} ${route.upstream.host}`.includes(query.toLowerCase())), [routes, query])
   const openCreate = () => { setEditing(null); setFormError(null); setFormOpen(true) }

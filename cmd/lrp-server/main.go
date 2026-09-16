@@ -40,7 +40,11 @@ func run() error {
 		slog.Warn("initial Caddy reconciliation failed; dashboard remains available", "error", err)
 	}
 
-	apiHandler := api.NewHandler(service)
+	auth := api.NewAuth(os.Getenv("LRP_ADMIN_TOKEN"))
+	if !auth.Enabled() {
+		slog.Warn("dashboard authentication is disabled; set LRP_ADMIN_TOKEN outside development")
+	}
+	apiHandler := api.NewHandler(service, auth)
 	staticDir := env("LRP_WEB_DIR", "./web/dist")
 	handler := spaHandler(apiHandler, staticDir)
 	server := &http.Server{
