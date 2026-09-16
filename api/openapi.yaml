@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: Local Reverse Proxy API
+  version: 1.0.0
+  description: Loopback-only API for managing local reverse-proxy routes.
+servers:
+  - url: http://127.0.0.1:7400/api/v1
+security:
+  - bearerToken: []
+paths:
+  /auth/exchange:
+    post:
+      security: []
+      summary: Exchange the bootstrap token for a browser session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '204': { description: Session cookie issued }
+        '401': { $ref: '#/components/responses/Problem' }
+  /routes:
+    get:
+      summary: List routes
+      responses:
+        '200':
+          description: Route collection
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: '#/components/schemas/Route' } }
+    post:
+      summary: Create a route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RouteInput' }
+      responses:
+        '201': { description: Route created }
+        '400': { $ref: '#/components/responses/Problem' }
+        '409': { $ref: '#/components/responses/Problem' }
+  /routes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      summary: Replace editable route fields using an optimistic revision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - { $ref: '#/components/schemas/RouteInput' }
+                - type: object
+                  required: [enabled, revision]
+                  properties:
+                    enabled: { type: boolean }
+                    revision: { type: integer, minimum: 1 }
+      responses:
+        '200': { description: Updated route }
+        '409': { $ref: '#/components/responses/Problem' }
+    delete:
+      summary: Delete a route using an optimistic revision
+      parameters:
+        - name: revision
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '204': { description: Route deleted }
+        '409': { $ref: '#/components/responses/Problem' }
+  /status:
+    get:
+      summary: Read controller status and configured zone
+      responses:
+        '200': { description: Controller status }
+components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+  schemas:
+    Upstream:
+      type: object
+      additionalProperties: false
+      required: [scheme, host, port, skipTlsVerify]
+      properties:
+        scheme: { type: string, enum: [http, https] }
+        host: { type: string }
+        port: { type: integer, minimum: 1, maximum: 65535 }
+        skipTlsVerify: { type: boolean }
+    RouteInput:
+      type: object
+      additionalProperties: false
+      required: [hostname, publicMode, upstream]
+      properties:
+        hostname: { type: string, description: Relative hostname beneath the installation zone }
+        publicMode: { type: string, enum: [http, https] }
+        upstream: { $ref: '#/components/schemas/Upstream' }
+    Route:
+      allOf:
+        - { $ref: '#/components/schemas/RouteInput' }
+        - type: object
+          required: [id, enabled, revision, health, createdAt, updatedAt]
+          properties:
+            id: { type: string }
+            enabled: { type: boolean }
+            revision: { type: integer }
+            health: { type: string, enum: [unknown, reachable, unreachable] }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+  responses:
+    Problem:
+      description: Problem details
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
