@@ -34,6 +34,8 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     networks: [lrp]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     security_opt: [no-new-privileges:true]
 
   dns:

@@ -9,7 +9,7 @@ import (
 
 func TestRenderBuildsHTTPAndHTTPSServers(t *testing.T) {
 	routes := []domain.Route{
-		{ID: "one", Hostname: "web", Enabled: true, PublicMode: domain.PublicHTTPS, Upstream: domain.Upstream{Scheme: "http", Host: "host.docker.internal", Port: 3000}},
+		{ID: "one", Hostname: "web", Enabled: true, PublicMode: domain.PublicHTTPS, Upstream: domain.Upstream{Scheme: "http", Host: "localhost", Port: 3000}},
 		{ID: "two", Hostname: "api", Enabled: true, PublicMode: domain.PublicHTTP, Upstream: domain.Upstream{Scheme: "https", Host: "10.0.0.2", Port: 8443, SkipTLSVerify: true}},
 		{ID: "three", Hostname: "off", Enabled: false, PublicMode: domain.PublicHTTP, Upstream: domain.Upstream{Scheme: "http", Host: "localhost", Port: 9000}},
 	}

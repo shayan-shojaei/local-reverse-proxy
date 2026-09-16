@@ -60,10 +60,13 @@ func routeForHost(host string, handler map[string]any) map[string]any {
 
 func reverseProxy(upstream domain.Upstream) map[string]any {
 	dialHost := upstream.Host
-	if net.ParseIP(upstream.Host) != nil {
-		dialHost = net.JoinHostPort(upstream.Host, fmt.Sprint(upstream.Port))
+	if dialHost == "localhost" || dialHost == "127.0.0.1" || dialHost == "::1" || dialHost == "[::1]" {
+		dialHost = "host.docker.internal"
+	}
+	if net.ParseIP(dialHost) != nil {
+		dialHost = net.JoinHostPort(dialHost, fmt.Sprint(upstream.Port))
 	} else {
-		dialHost = fmt.Sprintf("%s:%d", upstream.Host, upstream.Port)
+		dialHost = fmt.Sprintf("%s:%d", dialHost, upstream.Port)
 	}
 	handler := map[string]any{
 		"handler":   "reverse_proxy",
