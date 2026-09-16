@@ -6,6 +6,7 @@ permissions:
   contents: write
   packages: write
   id-token: write
+  attestations: write
 jobs:
   cli:
     runs-on: ubuntu-latest
@@ -29,7 +30,7 @@ jobs:
           mkdir dist
           go build -trimpath -ldflags="-s -w" -o dist/lrp ./cmd/lrp
           tar -C dist -czf "lrp-${GOOS}-${GOARCH}.tar.gz" lrp
-          sha256sum "lrp-${GOOS}-${GOARCH}.tar.gz" > "lrp-${GOOS}-${GOARCH}.sha256"
+          sha256sum "lrp-${GOOS}-${GOARCH}.tar.gz" > "lrp-${GOOS}-${GOARCH}.tar.gz.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: cli-${{ matrix.goos }}-${{ matrix.goarch }}
@@ -45,6 +46,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - id: meta
         uses: docker/metadata-action@v5
@@ -70,9 +72,9 @@ jobs:
     needs: [cli, image]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with: { path: artifacts, merge-multiple: true }
-      - uses: actions/checkout@v4
       - name: Create release and upload artifacts
         env:
           GH_TOKEN: ${{ github.token }}

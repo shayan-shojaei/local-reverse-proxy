@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
-	"github.com/shayan/local-reverse-proxy/internal/hostsetup"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/hostsetup"
 )
 
 //go:embed assets/*

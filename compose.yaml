@@ -2,7 +2,7 @@ name: local-reverse-proxy
 
 services:
   controller:
-    image: ghcr.io/shayan/local-reverse-proxy:${LRP_VERSION:-latest}
+    image: ghcr.io/shayan-shojaei/local-reverse-proxy:${LRP_VERSION:-latest}
     build:
       context: .
     environment:

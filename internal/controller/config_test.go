@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
-	"github.com/shayan/local-reverse-proxy/internal/store"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/store"
 )
 
 func TestPreviewAndApplyImportMergesByHostname(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
 )
 
 type Action struct {

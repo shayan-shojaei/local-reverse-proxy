@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
 )
 
 func Render(zone string, routes []domain.Route) (map[string]any, error) {

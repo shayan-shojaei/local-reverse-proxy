@@ -14,7 +14,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/shayan/local-reverse-proxy/internal/installer"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/installer"
 )
 
 func main() {

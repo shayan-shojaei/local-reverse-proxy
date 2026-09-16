@@ -28,13 +28,13 @@ Windows, LAN exposure, Podman, rootless Docker, wildcard routes, path routing, a
 Install the correct release for your Mac or Linux machine, verify its checksum, configure Docker, split DNS, and local CA trust with one command:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/shayan/local-reverse-proxy/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/shayan-shojaei/local-reverse-proxy/main/install.sh | sh
 ```
 
 Choose another reserved `.test` zone or dashboard port through environment variables:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/shayan/local-reverse-proxy/main/install.sh | LRP_ZONE=dev.test LRP_DASHBOARD_PORT=7401 sh
+curl -fsSL https://raw.githubusercontent.com/shayan-shojaei/local-reverse-proxy/main/install.sh | LRP_ZONE=dev.test LRP_DASHBOARD_PORT=7401 sh
 ```
 
 The script can be downloaded and inspected before running. Set `LRP_SKIP_SETUP=1` to install only the CLI.

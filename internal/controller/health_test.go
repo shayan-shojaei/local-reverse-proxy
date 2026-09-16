@@ -3,7 +3,7 @@ package controller
 import (
 	"testing"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
 )
 
 func TestHealthAddressNormalizesHostLoopback(t *testing.T) {

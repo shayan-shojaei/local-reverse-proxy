@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/shayan/local-reverse-proxy/internal/caddy"
-	"github.com/shayan/local-reverse-proxy/internal/domain"
-	"github.com/shayan/local-reverse-proxy/internal/store"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/caddy"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/store"
 )
 
 type Applier interface {

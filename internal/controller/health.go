@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
 )
 
 func (s *Service) StartHealthChecks(ctx context.Context, interval time.Duration) {

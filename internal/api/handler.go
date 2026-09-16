@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/shayan/local-reverse-proxy/internal/controller"
-	"github.com/shayan/local-reverse-proxy/internal/domain"
-	"github.com/shayan/local-reverse-proxy/internal/store"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/controller"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/store"
 )
 
 type Handler struct {

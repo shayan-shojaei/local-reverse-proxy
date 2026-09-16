@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
 )
 
 func TestRenderBuildsHTTPAndHTTPSServers(t *testing.T) {

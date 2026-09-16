@@ -1,4 +1,4 @@
-module github.com/shayan/local-reverse-proxy
+module github.com/shayan-shojaei/local-reverse-proxy
 
 go 1.24.0
 

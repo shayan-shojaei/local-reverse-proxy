@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/shayan/local-reverse-proxy/internal/controller"
-	"github.com/shayan/local-reverse-proxy/internal/store"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/controller"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/store"
 )
 
 type acceptingApplier struct{}

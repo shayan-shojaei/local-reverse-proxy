@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-REPOSITORY=${LRP_REPOSITORY:-shayan/local-reverse-proxy}
+REPOSITORY=${LRP_REPOSITORY:-shayan-shojaei/local-reverse-proxy}
 RELEASE=${LRP_VERSION:-latest}
 ZONE=${LRP_ZONE:-local.test}
 DASHBOARD_PORT=${LRP_DASHBOARD_PORT:-7400}

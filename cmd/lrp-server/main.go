@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shayan/local-reverse-proxy/internal/api"
-	"github.com/shayan/local-reverse-proxy/internal/caddy"
-	"github.com/shayan/local-reverse-proxy/internal/controller"
-	"github.com/shayan/local-reverse-proxy/internal/store"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/api"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/caddy"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/controller"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/store"
 )
 
 func main() {

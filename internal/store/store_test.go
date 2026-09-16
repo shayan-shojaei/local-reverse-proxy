@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/shayan/local-reverse-proxy/internal/domain"
+	"github.com/shayan-shojaei/local-reverse-proxy/internal/domain"
 )
 
 func TestRouteLifecycleAndRevisionChecks(t *testing.T) {
