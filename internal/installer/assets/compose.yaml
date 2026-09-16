@@ -12,7 +12,6 @@ services:
     volumes: ["controller-data:/data"]
     networks: [lrp]
     extra_hosts: ["host.docker.internal:host-gateway"]
-    extra_hosts: ["host.docker.internal:host-gateway"]
     read_only: true
     tmpfs: [/tmp]
     security_opt: [no-new-privileges:true]
@@ -26,6 +25,7 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     networks: [lrp]
+    extra_hosts: ["host.docker.internal:host-gateway"]
     security_opt: [no-new-privileges:true]
   dns:
     image: coredns/coredns:1.12.4
