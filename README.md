@@ -23,9 +23,25 @@ Local Reverse Proxy (`lrp`) gives development servers memorable `.test` domains 
 
 Windows, LAN exposure, Podman, rootless Docker, wildcard routes, path routing, and container discovery are intentionally outside v1.
 
-## Install from a release
+## Install
 
-Download the archive for your platform from GitHub Releases, verify it against `checksums.txt`, then place `lrp` on your `PATH`:
+Install the correct release for your Mac or Linux machine, verify its checksum, configure Docker, split DNS, and local CA trust with one command:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shayan/local-reverse-proxy/main/install.sh | sh
+```
+
+Choose another reserved `.test` zone or dashboard port through environment variables:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/shayan/local-reverse-proxy/main/install.sh | LRP_ZONE=dev.test LRP_DASHBOARD_PORT=7401 sh
+```
+
+The script can be downloaded and inspected before running. Set `LRP_SKIP_SETUP=1` to install only the CLI.
+
+### Manual release install
+
+Download the archive and matching `.sha256` file for your platform from GitHub Releases, verify them, then place `lrp` on your `PATH`:
 
 ```sh
 lrp install --zone local.test

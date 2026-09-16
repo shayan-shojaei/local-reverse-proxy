@@ -1,0 +1,11 @@
+.git
+.github
+.env
+*.db
+*.pem
+*.key
+bin
+coverage
+node_modules
+web/node_modules
+web/dist
