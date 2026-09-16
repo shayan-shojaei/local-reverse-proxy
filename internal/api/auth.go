@@ -119,7 +119,7 @@ func sameLoopbackOrigin(request *http.Request) bool {
 		return false
 	}
 	parsed, err := url.Parse(origin)
-	if err != nil {
+	if err != nil || parsed.Scheme != "http" || parsed.Host != request.Host {
 		return false
 	}
 	host := parsed.Hostname()

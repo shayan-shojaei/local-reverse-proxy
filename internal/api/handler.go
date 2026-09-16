@@ -51,7 +51,7 @@ func (h *Handler) listRoutes(writer http.ResponseWriter, request *http.Request) 
 
 func (h *Handler) createRoute(writer http.ResponseWriter, request *http.Request) {
 	var input domain.RouteInput
-	if err := decodeJSON(request, &input); err != nil {
+	if err := decodeJSON(writer, request, &input); err != nil {
 		writeProblem(writer, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
@@ -72,7 +72,7 @@ func (h *Handler) updateRoute(writer http.ResponseWriter, request *http.Request)
 		Upstream   domain.Upstream   `json:"upstream"`
 		Revision   int64             `json:"revision"`
 	}
-	if err := decodeJSON(request, &input); err != nil {
+	if err := decodeJSON(writer, request, &input); err != nil {
 		writeProblem(writer, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
@@ -111,11 +111,11 @@ func (h *Handler) status(writer http.ResponseWriter, request *http.Request) {
 	}})
 }
 
-func decodeJSON(request *http.Request, target any) error {
+func decodeJSON(writer http.ResponseWriter, request *http.Request, target any) error {
 	if !strings.HasPrefix(request.Header.Get("Content-Type"), "application/json") {
 		return errors.New("Content-Type must be application/json")
 	}
-	decoder := json.NewDecoder(http.MaxBytesReader(nil, request.Body, 1<<20))
+	decoder := json.NewDecoder(http.MaxBytesReader(writer, request.Body, 1<<20))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(target); err != nil {
 		return fmt.Errorf("invalid JSON body: %w", err)
@@ -177,6 +177,7 @@ func securityHeaders(next http.Handler) http.Handler {
 		writer.Header().Set("X-Content-Type-Options", "nosniff")
 		writer.Header().Set("X-Frame-Options", "DENY")
 		writer.Header().Set("Referrer-Policy", "no-referrer")
+		writer.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		next.ServeHTTP(writer, request)
 	})
 }

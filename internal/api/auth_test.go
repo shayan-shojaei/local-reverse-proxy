@@ -73,3 +73,21 @@ func TestAuthRejectsCrossOriginSessionMutation(t *testing.T) {
 		t.Fatalf("cross-origin status = %d", response.Code)
 	}
 }
+
+func TestAuthRejectsMutationFromDifferentLoopbackPort(t *testing.T) {
+	auth := NewAuth("correct-token")
+	session := auth.newSession()
+	handler := auth.Wrap(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/routes", strings.NewReader(`{}`))
+	request.Host = "127.0.0.1:7400"
+	request.Header.Set("Origin", "http://127.0.0.1:9000")
+	request.AddCookie(&http.Cookie{Name: sessionCookie, Value: session})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, request)
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("different-port status = %d", response.Code)
+	}
+}
