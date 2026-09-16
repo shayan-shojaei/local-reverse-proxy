@@ -5,6 +5,7 @@ interface Props {
   zone: string
   onEdit: (route: Route) => void
   onDelete: (route: Route) => void
+  onToggle: (route: Route) => void
 }
 
 function Status({ route }: { route: Route }) {
@@ -12,7 +13,7 @@ function Status({ route }: { route: Route }) {
   return <span className={`status status--${route.enabled ? route.health : 'disabled'}`}><span aria-hidden="true" />{label}</span>
 }
 
-export function RouteTable({ routes, zone, onEdit, onDelete }: Props) {
+export function RouteTable({ routes, zone, onEdit, onDelete, onToggle }: Props) {
   if (routes.length === 0) {
     return (
       <section className="empty-state" aria-labelledby="empty-heading">
@@ -40,6 +41,7 @@ export function RouteTable({ routes, zone, onEdit, onDelete }: Props) {
                 <td data-label="Upstream"><code>{upstreamURL}</code>{route.upstream.skipTlsVerify && <span className="warning">TLS verification off</span>}</td>
                 <td data-label="Status"><Status route={route} /></td>
                 <td className="row-actions">
+                  <button className="button button--quiet" onClick={() => onToggle(route)}>{route.enabled ? 'Disable' : 'Enable'}</button>
                   <button className="button button--quiet" onClick={() => onEdit(route)}>Edit</button>
                   <button className="button button--danger-quiet" onClick={() => onDelete(route)}>Delete</button>
                 </td>

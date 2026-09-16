@@ -3,7 +3,7 @@ import { expect, it } from 'vitest'
 import { RouteTable } from './RouteTable'
 
 it('shows a useful empty state', () => {
-  render(<RouteTable routes={[]} zone="local.test" onEdit={() => undefined} onDelete={() => undefined} />)
+  render(<RouteTable routes={[]} zone="local.test" onEdit={() => undefined} onDelete={() => undefined} onToggle={() => undefined} />)
   expect(screen.getByRole('heading', { name: /no routes yet/i })).toBeInTheDocument()
   expect(screen.getByText(/first local domain/i)).toBeInTheDocument()
 })
@@ -19,6 +19,7 @@ it('renders a route with its complete public URL and upstream', () => {
       }]}
       onEdit={() => undefined}
       onDelete={() => undefined}
+      onToggle={() => undefined}
     />,
   )
   expect(screen.getByText('https://api.local.test')).toBeInTheDocument()

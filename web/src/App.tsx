@@ -56,6 +56,11 @@ export default function App() {
     try { await api.deleteRoute(route); await load() }
     catch (error) { setPageError(error instanceof Error ? error.message : 'Could not delete route') }
   }
+  const toggle = async (route: Route) => {
+    const draft: RouteDraft = { hostname: route.hostname, publicMode: route.publicMode, upstream: route.upstream }
+    try { await api.updateRoute(route, draft, !route.enabled); await load() }
+    catch (error) { setPageError(error instanceof Error ? error.message : 'Could not update route') }
+  }
 
   const zone = status?.zone ?? 'local.test'
   return (
@@ -66,7 +71,7 @@ export default function App() {
         <section className="system-strip" aria-label="System status"><div><span className={`health-dot ${status ? '' : 'health-dot--muted'}`} /><span><strong>{status ? 'Proxy services online' : 'Checking services…'}</strong><small>{zone} · loopback only</small></span></div><button className="button button--quiet" onClick={() => void load()}>Run checks</button></section>
         {pageError && <div className="page-error" role="alert"><span>{pageError}</span><button onClick={() => void load()}>Retry</button></div>}
         <section className="routes-section" aria-labelledby="routes-heading"><div className="section-toolbar"><div><h2 id="routes-heading">Routes</h2><span>{routes.length} configured</span></div><label className="search"><span className="sr-only">Search routes</span><input type="search" placeholder="Search domains or targets" value={query} onChange={(e) => setQuery(e.target.value)} /></label></div>
-          {loading ? <div className="loading" aria-busy="true">Loading routes…</div> : <RouteTable routes={visible} zone={zone} onEdit={openEdit} onDelete={(route) => void remove(route)} />}
+          {loading ? <div className="loading" aria-busy="true">Loading routes…</div> : <RouteTable routes={visible} zone={zone} onEdit={openEdit} onDelete={(route) => void remove(route)} onToggle={(route) => void toggle(route)} />}
         </section>
       </main>
       <footer><span>Local Reverse Proxy</span><span>Dashboard at 127.0.0.1:7400</span></footer>
