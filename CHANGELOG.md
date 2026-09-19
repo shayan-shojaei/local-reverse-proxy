@@ -4,6 +4,12 @@ All notable changes are documented here using Keep a Changelog conventions.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-19
+
+### Added
+
+- `lrp start` and `lrp stop` subcommands to start/stop the Compose stack.
+
 ## [0.1.0] - 2026-09-16
 
 ### Added

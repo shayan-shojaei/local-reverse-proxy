@@ -45,6 +45,16 @@ func run(args []string) error {
 			return err
 		}
 		return app.Install(ctx, installer.Options{Zone: *zone, DashboardPort: *port, Version: *version, DryRun: *dryRun, Writer: printStep})
+	case "start":
+		if _, err := app.Env(); err != nil {
+			return errors.New("not installed; run `lrp install` first")
+		}
+		return app.Compose(ctx, "up", "-d")
+	case "stop":
+		if _, err := app.Env(); err != nil {
+			return errors.New("not installed; run `lrp install` first")
+		}
+		return app.Compose(ctx, "stop")
 	case "dashboard":
 		return openDashboard(app)
 	case "doctor":
@@ -222,6 +232,8 @@ func usage() {
 
 Usage:
   lrp install [--zone local.test] [--dashboard-port 7400] [--version latest] [--dry-run]
+  lrp start
+  lrp stop
   lrp dashboard
   lrp doctor
   lrp export [--output lrp-config.json]
