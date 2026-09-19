@@ -4,6 +4,13 @@ All notable changes are documented here using Keep a Changelog conventions.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-19
+
+### Added
+
+- `lrp upgrade` now self-upgrades the CLI binary from the matching GitHub release before pulling and restarting Docker images.
+- `lrp --version` prints the installed CLI version.
+
 ## [0.1.1] - 2026-09-19
 
 ### Added

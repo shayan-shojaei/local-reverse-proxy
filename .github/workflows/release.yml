@@ -28,7 +28,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           mkdir dist
-          go build -trimpath -ldflags="-s -w" -o dist/lrp ./cmd/lrp
+          go build -trimpath -ldflags="-s -w -X main.version=${GITHUB_REF_NAME#v}" -o dist/lrp ./cmd/lrp
           tar -C dist -czf "lrp-${GOOS}-${GOARCH}.tar.gz" lrp
           sha256sum "lrp-${GOOS}-${GOARCH}.tar.gz" > "lrp-${GOOS}-${GOARCH}.tar.gz.sha256"
       - uses: actions/upload-artifact@v4

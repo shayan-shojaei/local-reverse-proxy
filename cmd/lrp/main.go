@@ -1,8 +1,12 @@
 package main
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -12,10 +16,16 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/shayan-shojaei/local-reverse-proxy/internal/installer"
 )
+
+// version is set at build time via -ldflags "-X main.version=X.Y.Z".
+var version = "dev"
+
+const repository = "shayan-shojaei/local-reverse-proxy"
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -28,6 +38,11 @@ func run(args []string) error {
 	if len(args) == 0 {
 		usage()
 		return errors.New("a command is required")
+	}
+	switch args[0] {
+	case "--version", "-v", "version":
+		fmt.Println("lrp", version)
+		return nil
 	}
 	app, err := installer.New()
 	if err != nil {
@@ -61,11 +76,18 @@ func run(args []string) error {
 		return doctor(ctx, app)
 	case "upgrade":
 		flags := flag.NewFlagSet("upgrade", flag.ContinueOnError)
-		version := flags.String("version", "latest", "release version/image tag")
+		requested := flags.String("version", "latest", "release version/image tag")
 		if err := flags.Parse(args[1:]); err != nil {
 			return err
 		}
-		return app.Upgrade(ctx, *version)
+		tag, err := resolveTag(ctx, *requested)
+		if err != nil {
+			return err
+		}
+		if err := upgradeCLI(ctx, tag); err != nil {
+			return err
+		}
+		return app.Upgrade(ctx, strings.TrimPrefix(tag, "v"))
 	case "uninstall":
 		flags := flag.NewFlagSet("uninstall", flag.ContinueOnError)
 		purge := flags.Bool("purge", false, "also permanently delete route and certificate data")
@@ -239,5 +261,113 @@ Usage:
   lrp export [--output lrp-config.json]
   lrp import [--mode merge|replace] [--yes] FILE
   lrp upgrade [--version VERSION]
-  lrp uninstall [--purge]`)
+  lrp uninstall [--purge]
+  lrp --version`)
+}
+
+// resolveTag turns a requested "latest" or bare version into a GitHub release
+// tag (e.g. "v0.2.0"), matching install.sh's convention.
+func resolveTag(ctx context.Context, requested string) (string, error) {
+	if requested != "" && requested != "latest" {
+		if !strings.HasPrefix(requested, "v") {
+			requested = "v" + requested
+		}
+		return requested, nil
+	}
+	body, err := httpGet(ctx, fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repository))
+	if err != nil {
+		return "", fmt.Errorf("check latest release: %w", err)
+	}
+	var payload struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return "", fmt.Errorf("check latest release: %w", err)
+	}
+	if payload.TagName == "" {
+		return "", errors.New("check latest release: no tag returned")
+	}
+	return payload.TagName, nil
+}
+
+// upgradeCLI replaces the running lrp binary with the one published for tag,
+// unless it is already at that version.
+func upgradeCLI(ctx context.Context, tag string) error {
+	if version != "dev" && "v"+version == tag {
+		fmt.Println("lrp CLI already at", tag)
+		return nil
+	}
+	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
+		return fmt.Errorf("CLI self-upgrade is not supported on %s", runtime.GOOS)
+	}
+	archive := fmt.Sprintf("lrp-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	base := fmt.Sprintf("https://github.com/%s/releases/download/%s", repository, tag)
+	data, err := httpGet(ctx, base+"/"+archive)
+	if err != nil {
+		return fmt.Errorf("download %s: %w", archive, err)
+	}
+	checksum, err := httpGet(ctx, base+"/"+archive+".sha256")
+	if err != nil {
+		return fmt.Errorf("download %s.sha256: %w", archive, err)
+	}
+	sum := sha256.Sum256(data)
+	if fields := strings.Fields(string(checksum)); len(fields) == 0 || fields[0] != hex.EncodeToString(sum[:]) {
+		return fmt.Errorf("checksum mismatch for %s", archive)
+	}
+	binary, err := extractBinary(data)
+	if err != nil {
+		return err
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	staged := executable + ".upgrade"
+	if err := os.WriteFile(staged, binary, 0o755); err != nil {
+		return fmt.Errorf("write new lrp binary (try running with sudo): %w", err)
+	}
+	if err := os.Rename(staged, executable); err != nil {
+		os.Remove(staged)
+		return fmt.Errorf("replace lrp binary (try running with sudo): %w", err)
+	}
+	fmt.Println("upgraded lrp CLI to", tag)
+	return nil
+}
+
+func extractBinary(archiveData []byte) ([]byte, error) {
+	gzipReader, err := gzip.NewReader(bytes.NewReader(archiveData))
+	if err != nil {
+		return nil, err
+	}
+	defer gzipReader.Close()
+	tarReader := tar.NewReader(gzipReader)
+	for {
+		header, err := tarReader.Next()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if header.Name == "lrp" {
+			return io.ReadAll(tarReader)
+		}
+	}
+	return nil, errors.New("lrp binary not found in release archive")
+}
+
+func httpGet(ctx context.Context, url string) ([]byte, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	response, err := (&http.Client{Timeout: 30 * time.Second}).Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(response.Status)
+	}
+	return io.ReadAll(response.Body)
 }
